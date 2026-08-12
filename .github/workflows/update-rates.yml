@@ -1,0 +1,78 @@
+name: עדכון שערי בנק ישראל
+
+# רץ כל יום חול בערב שעון ישראל, אחרי שהשער היציג מתפרסם,
+# וגם ידנית מלשונית Actions.
+on:
+  schedule:
+    - cron: '30 16 * * 0-4'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: משיכת השערים ובניית הקובץ
+        run: |
+          python - <<'PY'
+          import json, io, urllib.request, datetime
+
+          URL = ("https://edge.boi.gov.il/FusionEdgeServer/sdmx/v2/data/dataflow/"
+                 "BOI.STATISTICS/EXR/1.0/RER_USD_ILS"
+                 "?startperiod={y}-01-01&endperiod={y}-12-31&format=csv")
+
+          year = datetime.date.today().year
+          req = urllib.request.Request(URL.format(y=year),
+                                       headers={"User-Agent": "Mozilla/5.0"})
+          text = urllib.request.urlopen(req, timeout=60).read().decode("utf-8")
+
+          lines = text.strip().splitlines()
+          head = lines[0].split(",")
+          i_date, i_val = head.index("TIME_PERIOD"), head.index("OBS_VALUE")
+
+          rates = {}
+          for line in lines[1:]:
+              c = line.split(",")
+              try:
+                  rates[c[i_date]] = float(c[i_val])
+              except (ValueError, IndexError):
+                  continue
+
+          # לא דורסים קובץ תקין בקובץ ריק. תשובה ריקה היא תקלה, לא "אין נתונים".
+          if len(rates) < 100:
+              raise SystemExit("נמשכו רק %d שערים, פחות מדי. הקובץ לא נדרס." % len(rates))
+
+          # שמירת שערים משנים קודמות שכבר יושבים בקובץ
+          try:
+              old = json.load(io.open("rates-usd.json", encoding="utf-8"))["rates"]
+          except Exception:
+              old = {}
+          old.update(rates)
+
+          out = {
+              "currency": "USD",
+              "source": "בנק ישראל, שער יציג יומי",
+              "updated": max(rates),
+              "note": "מתעדכן אוטומטית פעם ביום. תאריך שאין בו פרסום נופל לשער האחרון שלפניו.",
+              "rates": dict(sorted(old.items())),
+          }
+          io.open("rates-usd.json", "w", encoding="utf-8", newline="\n").write(
+              json.dumps(out, ensure_ascii=False, indent=2) + "\n")
+          print("נשמרו %d שערים, אחרון %s" % (len(out["rates"]), out["updated"]))
+          PY
+
+      - name: לקמוט ולדחוף אם השתנה
+        run: |
+          if git diff --quiet -- rates-usd.json; then
+            echo "אין שער חדש, אין מה לדחוף."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add rates-usd.json
+          git commit -m "עדכון שערי בנק ישראל"
+          git push
