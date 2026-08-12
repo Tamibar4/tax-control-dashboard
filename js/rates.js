@@ -67,13 +67,13 @@ window.Rates = (function () {
   function loadLocalTable() {
     if (localTable) return Promise.resolve(localTable);
     if (localPromise) return localPromise;
-    localPromise = fetch(LOCAL_FILE, { cache: 'no-cache' })
+    localPromise = fetch(LOCAL_FILE)
       .then(function (r) {
-        if (!r.ok) throw new Error('טבלת השערים המקומית לא נמצאה');
+        if (!r.ok) throw new Error('טבלת השערים שבאתר לא נמצאה');
         return r.json();
       })
       .then(function (j) {
-        if (!j || !j.rates) throw new Error('טבלת השערים המקומית פגומה');
+        if (!j || !j.rates) throw new Error('טבלת השערים שבאתר פגומה');
         localTable = {
           updated: j.updated || '',
           pairs: Object.keys(j.rates).map(function (d) {
@@ -81,6 +81,13 @@ window.Rates = (function () {
           })
         };
         return localTable;
+      })
+      /* 🔴 בלי זה, ניסיון ראשון שנכשל נשמר כהבטחה דחויה ומפיל כל ניסיון
+         עתידי, גם כשהרשת חזרה. נמדד בפועל: הטבלה נמשכה ב-200 בבדיקה
+         ישירה, ובאותו רגע Rates.get המשיך להיכשל. */
+      .catch(function (e) {
+        localPromise = null;
+        throw e;
       });
     return localPromise;
   }
@@ -124,8 +131,13 @@ window.Rates = (function () {
         return fromBoi(dateStr).then(remember).catch(function () { return remember(res); });
       }
       return remember(res);
-    }).catch(function () {
-      return fromBoi(dateStr).then(remember);
+    }).catch(function (localErr) {
+      /* המסלול השני. אם גם הוא נופל, ההודעה למשתמשת מזכירה את שני המקורות
+         ולא רק את האחרון שנכשל, אחרת נראה כאילו רק בנק ישראל אשם. */
+      return fromBoi(dateStr).then(remember).catch(function (boiErr) {
+        throw new Error('הטבלה שבאתר: ' + localErr.message +
+                        '. בנק ישראל: ' + boiErr.message);
+      });
     });
   }
 
