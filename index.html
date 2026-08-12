@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>לוח בקרת מסים</title>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<header class="topbar">
+  <h1>לוח בקרת מסים</h1>
+  <div class="sub" id="topSub">עוסק מורשה &middot; שנת מס 2026</div>
+</header>
+
+<nav class="tabs" role="tablist">
+  <button role="tab" id="tab-dashboard" aria-selected="true" data-screen="dashboard">לוח בקרה</button>
+  <button role="tab" id="tab-entry" aria-selected="false" data-screen="entry">הזנת נתונים</button>
+  <button role="tab" id="tab-settings" aria-selected="false" data-screen="settings">הגדרות</button>
+</nav>
+
+<main>
+
+  <!-- ============ לוח בקרה ============ -->
+  <section class="screen" id="screen-dashboard">
+
+    <div class="disclaimer">
+      <strong>תחזית לצורכי תזרים בלבד.</strong>
+      יש לבדוק מול רו"ח או יועץ מס. המערכת אינה מדווחת ואינה משלמת דבר לרשויות.
+    </div>
+
+    <div class="month-picker">
+      <div>
+        <label for="viewMode">תצוגה</label>
+        <div class="seg" id="viewMode">
+          <button type="button" data-mode="month" aria-pressed="false">חודשית</button>
+          <button type="button" data-mode="bimonth" aria-pressed="false">דו-חודשית</button>
+          <button type="button" data-mode="year" aria-pressed="true">שנתית</button>
+        </div>
+      </div>
+      <div id="periodPickWrap" hidden>
+        <label for="periodPick">תקופה</label>
+        <select id="periodPick"></select>
+      </div>
+    </div>
+
+    <div class="cards">
+      <div class="card vault">
+        <div class="label">מע"מ צפוי לתשלום</div>
+        <div class="value" id="cardVat">-</div>
+        <div class="hint">קופה נפרדת. זה לא כסף שלך.</div>
+      </div>
+      <div class="card provision">
+        <div class="label">הפרשה מומלצת למס הכנסה</div>
+        <div class="value" id="cardTax">-</div>
+        <div class="hint" id="cardTaxHint">לחודש</div>
+      </div>
+      <div class="card provision">
+        <div class="label">הפרשה מומלצת לביטוח לאומי</div>
+        <div class="value" id="cardBl">-</div>
+        <div class="hint" id="cardBlHint">לחודש, מעבר למקדמה</div>
+      </div>
+      <div class="card free">
+        <div class="label">כסף פנוי משוער</div>
+        <div class="value" id="cardFree">-</div>
+        <div class="hint">אחרי כל ההפרשות</div>
+      </div>
+    </div>
+
+    <div class="panel-grid">
+
+      <div class="panel">
+        <h2>התמונה המצטברת</h2>
+        <div class="rows" id="rowsSummary"></div>
+        <p class="note" id="summaryNote"></p>
+      </div>
+
+      <div class="panel">
+        <h2>מע"מ</h2>
+        <div class="rows" id="rowsVat"></div>
+        <div id="vatWarn"></div>
+      </div>
+
+      <div class="panel">
+        <h2>מס הכנסה</h2>
+        <div class="rows" id="rowsTax"></div>
+        <p class="note">תחזית לצורכי תזרים בלבד. יש לבדוק מול רו"ח או יועץ מס.</p>
+      </div>
+
+      <div class="panel">
+        <h2>ביטוח לאומי וביטוח בריאות</h2>
+        <div class="rows" id="rowsBl"></div>
+        <p class="note">אינה הוראת תשלום רשמית. הסכום שנקבע בתיק שלך מופיע בהגדרות.</p>
+      </div>
+
+    </div>
+
+    <div class="panel">
+      <h2>גרף חודשי</h2>
+      <div class="legend" id="chartLegend"></div>
+      <div id="chartWrap"></div>
+    </div>
+
+    <div class="panel">
+      <h2>כמה נשאר מכל חודש</h2>
+      <div id="rowsMonths"></div>
+      <p class="note">המס והביטוח הלאומי מחולקים בין החודשים לפי גודל ההכנסה בכל חודש.
+      כאן מופחתת מלוא החבות של החודש, כולל מקדמות ששילמת כבר. בכרטיס "כסף פנוי" למעלה
+      מופחת רק מה שעוד לא שולם, ולכן הוא גבוה יותר.</p>
+    </div>
+
+  </section>
+
+  <!-- ============ הזנת נתונים ============ -->
+  <section class="screen" id="screen-entry" hidden>
+
+    <div class="disclaimer">
+      <strong>לכל שורה נשמרים תאריך, סכום, האם הסכום כולל מע"מ, סוג המע"מ, קטגוריה, הערה וסטטוס.</strong>
+      הסיכומים החודשיים מחושבים מהשורות ולא מוזנים ידנית.
+    </div>
+
+    <div class="month-picker">
+      <div>
+        <label for="monthPick">חודש</label>
+        <select id="monthPick"></select>
+      </div>
+      <div style="flex:0 0 auto">
+        <button class="btn" id="btnAddMonth" type="button">הוספת חודש</button>
+      </div>
+      <div style="flex:0 0 auto">
+        <button class="btn danger" id="btnDeleteMonth" type="button">מחיקת החודש</button>
+      </div>
+    </div>
+
+    <div id="entryBody"></div>
+
+  </section>
+
+  <!-- ============ הגדרות ============ -->
+  <section class="screen" id="screen-settings" hidden>
+
+    <div class="panel">
+      <h2>הגדרות</h2>
+      <p class="note" id="settingsUpdated"></p>
+      <div id="settingsBody"></div>
+    </div>
+
+    <div class="panel">
+      <h2>מה לשאול את רואה החשבון</h2>
+      <p class="note">שמונה שאלות שאחריהן אפשר למלא את ההגדרות במדויק.
+      אפשר להעתיק ולשלוח כמו שהן.</p>
+      <ol class="ask-list" id="askList"></ol>
+      <div class="actions">
+        <button class="btn ghost" id="btnCopyAsk" type="button">העתקת הרשימה</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>ייצוא לאקסל</h2>
+      <p class="note">הקובץ נשמר בתיקיית ההורדות ונפתח באקסל או בגיליון של גוגל.</p>
+      <div class="actions">
+        <button class="btn" id="btnExportLines" type="button">ייצוא כל השורות</button>
+        <button class="btn ghost" id="btnExportMonths" type="button">ייצוא סיכום חודשי</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>גיבוי ושחזור</h2>
+      <p class="note">קובץ הגיבוי מכיל את כל הנתונים וההגדרות. שומרים אותו במקום בטוח,
+      ואפשר לשחזר ממנו במחשב אחר.</p>
+      <div class="actions">
+        <button class="btn" id="btnBackup" type="button">שמירת גיבוי</button>
+        <label class="btn ghost" for="restoreFile" id="btnRestore">שחזור מקובץ</label>
+        <input type="file" id="restoreFile" accept=".json,application/json" class="sr-only">
+        <button class="btn ghost" id="btnPasteToggle" type="button">שחזור מהדבקה</button>
+      </div>
+
+      <div id="pasteWrap" hidden>
+        <p class="note">אם חלון בחירת הקובץ לא נפתח, פותחים את קובץ הגיבוי בפנקס רשימות,
+        מסמנים הכל, מעתיקים, ומדביקים כאן.</p>
+        <textarea id="pasteBox" rows="5" placeholder="מדביקים כאן את תוכן קובץ הגיבוי"></textarea>
+        <div class="actions">
+          <button class="btn" id="btnPasteLoad" type="button">טעינת המודבק</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>הנתונים שלך</h2>
+      <p class="note">הכל נשמר בדפדפן הזה בלבד ולא נשלח לשום מקום. אין כאן סיסמאות לאתרי רשות המסים, לבנק או לביטוח לאומי.</p>
+      <div class="actions">
+        <button class="btn ghost" id="btnDemo" type="button">טעינת נתוני דמה</button>
+        <button class="btn danger" id="btnWipe" type="button">מחיקת כל הנתונים</button>
+      </div>
+    </div>
+
+  </section>
+
+</main>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="js/tax-config.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/rates.js"></script>
+<script src="js/calc.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
