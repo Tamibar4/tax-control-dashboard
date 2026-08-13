@@ -26,6 +26,8 @@ window.Store = (function () {
       blMonthlyAdvance: c.bituahLeumi.defaultMonthlyAdvance,
       /* invoice = לפי חשבונית או דרישת תשלום, cash = לפי כסף שהתקבל בפועל */
       reportingMethod: 'invoice',
+      /* תשובות רואה החשבון. נשמרות אצל המשתמשת בלבד. */
+      accountantAnswers: {},
       /* המטבע שבו נפתחת שורת הכנסה חדשה. הכסף מגיע בדולרים. */
       defaultIncomeCurrency: 'USD',
       /* מצב פשוט: הכנסות בלבד, בלי הוצאות. הערכה גסה כלפי מעלה.

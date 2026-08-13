@@ -722,19 +722,41 @@
       why: 'הכלי מושך היום את השער היציג של בנק ישראל, ואפשר לשנות ידנית בכל שורה.' }
   ];
 
+  /* התשובות נשמרות אצל המשתמשת בדפדפן, ולא בקוד.
+     הקוד גנרי ופומבי, והתשובות אישיות ונשארות פרטיות. */
+  function answerOf(i) {
+    var a = state.settings.accountantAnswers || {};
+    return a['q' + i] || '';
+  }
+
   function renderAskList() {
     var box = el('askList');
     if (!box) return;
-    box.innerHTML = ASK_ACCOUNTANT.map(function (a) {
-      return '<li><strong>' + esc(a.q) + '</strong><span class="why">' + esc(a.why) + '</span></li>';
+    box.innerHTML = ASK_ACCOUNTANT.map(function (a, i) {
+      var ans = answerOf(i);
+      return '<li class="' + (ans ? 'answered' : 'open') + '">' +
+        '<strong>' + esc(a.q) + '</strong>' +
+        '<span class="why">' + esc(a.why) + '</span>' +
+        '<input type="text" class="ans" data-answer="' + i + '" value="' + esc(ans) +
+        '" placeholder="התשובה שקיבלת, אם קיבלת">' +
+        '</li>';
     }).join('');
+
+    var open = ASK_ACCOUNTANT.filter(function (a, i) { return !answerOf(i); }).length;
+    var lbl = el('askCount');
+    if (lbl) {
+      lbl.textContent = open === 0
+        ? 'כל השאלות נענו.'
+        : 'נשארו ' + open + ' שאלות בלי תשובה מתוך ' + ASK_ACCOUNTANT.length + '.';
+    }
   }
 
+  /* מעתיק רק את מה שעוד לא נענה, כדי לא לשאול שוב מה שכבר יודעים */
   function askListText() {
+    var open = ASK_ACCOUNTANT.filter(function (a, i) { return !answerOf(i); });
+    if (!open.length) return 'כל השאלות כבר נענו.';
     return 'שאלות לקראת מילוי לוח בקרת המסים שלי:\r\n\r\n' +
-      ASK_ACCOUNTANT.map(function (a, i) {
-        return (i + 1) + '. ' + a.q;
-      }).join('\r\n');
+      open.map(function (a, i) { return (i + 1) + '. ' + a.q; }).join('\r\n');
   }
 
   /* מסמן אלמנט שלם, כדי שיישאר רק Ctrl+C */
@@ -1229,6 +1251,20 @@
     });
 
     renderAskList();
+    el('askList').addEventListener('input', function (e) {
+      var i = e.target.getAttribute('data-answer');
+      if (i === null) return;
+      if (!state.settings.accountantAnswers) state.settings.accountantAnswers = {};
+      state.settings.accountantAnswers['q' + i] = e.target.value;
+      persist();
+      var li = e.target.closest('li');
+      if (li) li.className = e.target.value ? 'answered' : 'open';
+      var open = ASK_ACCOUNTANT.filter(function (a, k) { return !answerOf(k); }).length;
+      el('askCount').textContent = open === 0
+        ? 'כל השאלות נענו.'
+        : 'נשארו ' + open + ' שאלות בלי תשובה מתוך ' + ASK_ACCOUNTANT.length + '.';
+    });
+
     el('btnCopyAsk').addEventListener('click', function () {
       copyText(askListText()).then(function (ok) {
         if (ok) {
