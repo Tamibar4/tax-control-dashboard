@@ -87,6 +87,38 @@
     return inYear.filter(function (m) { return m.month === start || m.month === start + 1; });
   }
 
+  /* מסך ריק יכול לנבוע משתי סיבות הפוכות: באמת אין נתונים, או שיש
+     נתונים והתצוגה מסננת אותם החוצה. ההודעה חייבת להבדיל ביניהן,
+     אחרת טעינה מוצלחת נראית בדיוק כמו טעינה שנכשלה. */
+  function emptyReason() {
+    var total = state.months.length;
+    if (!total) {
+      return 'אין עדיין נתונים. עוברים למסך הזנת נתונים ומוסיפים חודש.';
+    }
+    var inYear = state.months.filter(function (m) {
+      return m.year === state.settings.taxYear;
+    }).length;
+    if (!inYear) {
+      return 'יש אצלך ' + total + ' חודשים, אבל אף אחד מהם אינו בשנת המס ' +
+        esc(state.settings.taxYear) + '. אפשר לשנות את שנת המס בהגדרות.';
+    }
+    return '<strong>הנתונים כאן, התצוגה פשוט מסננת אותם.</strong><br>' +
+      'יש ' + inYear + ' חודשים בשנת המס הזו, ובתקופה שנבחרה אין נתונים.' +
+      '<br><button class="btn ghost small" id="btnShowYear" type="button" ' +
+      'style="margin-top:10px">הצגת כל השנה</button>';
+  }
+
+  /* מחזיר את התצוגה לשנתית ומיישר את הכפתורים למצב הזה */
+  function resetView() {
+    view.mode = 'year';
+    view.period = null;
+    var seg = el('viewMode');
+    if (!seg) return;
+    Array.prototype.forEach.call(seg.querySelectorAll('button'), function (b) {
+      b.setAttribute('aria-pressed', String(b.getAttribute('data-mode') === 'year'));
+    });
+  }
+
   function buildPeriodPicker() {
     var wrap = el('periodPickWrap');
     var sel = el('periodPick');
@@ -220,7 +252,7 @@
     }).join('');
 
     if (!a.perMonth.length) {
-      wrap.innerHTML = '<div class="empty">אין עדיין נתונים להצגה.</div>';
+      wrap.innerHTML = '<div class="empty">' + emptyReason() + '</div>';
       return;
     }
 
@@ -301,8 +333,7 @@
   function renderMonthlyNet(a, p, simple) {
     var box = el('rowsMonths');
     if (!a.perMonth.length) {
-      box.innerHTML = '<div class="empty">אין עדיין נתונים לתקופה הזו. ' +
-        'עוברים למסך הזנת נתונים ומוסיפים חודש.</div>';
+      box.innerHTML = '<div class="empty">' + emptyReason() + '</div>';
       return;
     }
 
@@ -952,6 +983,10 @@
     sortMonths();
     currentMonthId = null;
     persist();
+    /* 🔴 חובה לאפס את התצוגה. אם היא נשארה על חודש שאין בו נתונים,
+       הלוח מראה אפסים אחרי שחזור מוצלח - וזה נראה בדיוק כמו טעינה
+       שנכשלה. נמדד בפועל: 2 חודשים נשמרו והמסך הראה "אין עדיין נתונים". */
+    resetView();
     /* עוברים ללוח הבקרה כדי שיהיה אפשר לראות מיד שזה נכנס */
     showScreen('dashboard');
     toast('שוחזרו ' + state.months.length + ' חודשים ו-' + lines + ' שורות');
@@ -1135,6 +1170,15 @@
     el('periodPick').addEventListener('change', function () {
       view.period = this.value;
       renderDashboard();
+    });
+
+    /* הכפתור נולד בתוך הודעת המסך הריק, ולכן מאזינים ברמת המסך */
+    el('screen-dashboard').addEventListener('click', function (e) {
+      if (e.target.closest('#btnShowYear')) {
+        resetView();
+        renderDashboard();
+        toast('חזרנו לתצוגה שנתית');
+      }
     });
 
     el('monthPick').addEventListener('change', function () {
